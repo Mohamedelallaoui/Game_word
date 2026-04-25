@@ -21,6 +21,24 @@
       <p class="game-subtitle">اقرأ التلميح واملأ الحروف الناقصة</p>
     </header>
 
+    <!-- Score Bar -->
+    <div class="score-bar">
+      <div class="score-item">
+        <span class="score-label">النقاط</span>
+        <span id="score-value" class="score-value">0</span>
+      </div>
+      <div class="score-divider"></div>
+      <div class="score-item">
+        <span class="score-label">الكلمة</span>
+        <span id="word-counter" class="score-value">1 / <span id="total-words">—</span></span>
+      </div>
+      <div class="score-divider"></div>
+      <div class="score-item">
+        <span class="score-label">المستوى</span>
+        <span id="level-badge" class="level-badge">—</span>
+      </div>
+    </div>
+
     <div class="game-card">
 
       <!-- Clue Section -->
@@ -42,6 +60,10 @@
         <button id="check-btn" class="btn-check" onclick="checkAnswer()" aria-label="تحقق من الإجابة">
           <span class="btn-text">تحقق</span>
           <span class="btn-icon" aria-hidden="true">←</span>
+        </button>
+        <button id="next-btn" class="btn-next" onclick="nextWord()" aria-label="الكلمة التالية" style="display:none;">
+          <span class="btn-text">التالي</span>
+          <span class="btn-icon" aria-hidden="true">»</span>
         </button>
         <button id="reset-btn" class="btn-reset" onclick="resetGame()" aria-label="إعادة المحاولة">
           إعادة
