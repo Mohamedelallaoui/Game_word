@@ -113,6 +113,67 @@ body {
   letter-spacing: 0.01em;
 }
 
+/* ── Score Bar ──────────────────────────────────────────── */
+.score-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--warm-white);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  gap: 0.5rem;
+}
+
+.score-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.score-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-light);
+  text-transform: uppercase;
+}
+
+.score-value {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.score-value.bump {
+  transform: scale(1.4);
+  color: var(--gold-dark);
+}
+
+.score-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.level-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  background: var(--ivory);
+  color: var(--gold-dark);
+  border: 1.5px solid var(--gold-light);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
 /* ── Card ───────────────────────────────────────────────── */
 .game-card {
   background: var(--warm-white);
@@ -435,7 +496,86 @@ kbd {
   border: 1px solid rgba(0,0,0,0.1);
 }
 
-/* ── Win animation ──────────────────────────────────────── */
+.btn-next {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1.8rem;
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  animation: fadeSlideIn 0.35s ease;
+}
+
+.btn-next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(158, 120, 64, 0.4);
+}
+
+.btn-next:active {
+  transform: translateY(0);
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Game Over Card ─────────────────────────────────────── */
+.game-over {
+  text-align: center;
+  padding: 1rem 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.game-over-title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+.game-over-score {
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--gold-dark);
+  line-height: 1;
+}
+
+.game-over-label {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.btn-restart {
+  margin-top: 0.5rem;
+  padding: 0.85rem 2.5rem;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-restart:hover {
+  background: var(--gold-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(201, 169, 110, 0.35);
+}
+
+
 .game-card.won {
   animation: celebrate 0.6s ease;
 }

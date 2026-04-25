@@ -1,81 +1,95 @@
 /* ============================================================
    ARABIC WORD GAME — script.js
    ============================================================
-   HOW TO CHANGE THE WORD:
-   Edit ONLY the `gameData` object below.
+   HOW TO CHANGE THE WORD LIST:
+   Edit words.json — or change STATIC_WORDS below for
+   single-word static mode (no JSON needed).
 
-   template    : The word pattern using real letters and "_" for blanks.
-                 Separate each character with a space.
-                 Example: "ن _ _ س"  →  ن  [_]  [_]  س
-                 Example: "_ ر _ س _ _"  →  all blanks + ر + س
-
-   correctWord : The complete word (all letters, no spaces, no underscores).
-                 Used to validate answers.
-
-   clue        : The description/hint shown to the player.
+   SCORING:
+   • Correct on first try  → +10 pts
+   • Correct on second try → +5  pts
+   • Correct after that    → +2  pts
    ============================================================ */
 
-let gameData = {};
+/* ── Static fallback (used when NOT loading from words.json) ─
+   Remove or comment out if you load from words.json.          */
+const STATIC_WORDS = [
+  {
+    id: 1, difficulty: 2, category: "طبيعة",
+    template: "ن _ _ س", correctWord: "نرجس",
+    clue: "زهرةٌ بيضاء أو صفراء ذات عطرٍ فوّاح، رمزٌ للجمال في الشعر العربي."
+  },
+  {
+    id: 2, difficulty: 1, category: "طبيعة",
+    template: "_ م _ ", correctWord: "قمر",
+    clue: "يُضيء الليلَ ويمرّ بأطوار من الهلال إلى البدر."
+  },
+  {
+    id: 3, difficulty: 3, category: "أدب",
+    template: "_ _ ي _ ة", correctWord: "قصيدة",
+    clue: "عملٌ شعري متكامل له وزنٌ وقافية، يُعبّر فيه الشاعر عن مشاعره."
+  }
+];
 
+/* ── Game State ───────────────────────────────────────────── */
+let wordList   = [];
+let currentIdx = 0;
+let gameData   = {};
+let inputEls   = [];
+let hasWon     = false;
+let attempts   = 0;
+let totalScore = 0;
+
+const POINTS = { 1: 10, 2: 5, default: 2 };
+
+/* ── Boot ─────────────────────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", () => {
   fetch('words.json')
     .then(r => r.json())
     .then(data => {
-      const level = data.words.level_2;
-      gameData = level[Math.floor(Math.random() * level.length)];
-      buildGame();
+      wordList = Object.values(data.words).flat();
+      initGame();
+    })
+    .catch(() => {
+      wordList = STATIC_WORDS;
+      initGame();
     });
 });
 
-/* ============================================================
-   GOOGLE ANALYTICS 4 — EVENT TRACKING
-   ============================================================
-   To activate:
-   1. Add your GA4 gtag.js snippet to <head> in index.html.
-   2. Uncomment the `gtag(...)` call inside the win block below.
+function initGame() {
+  currentIdx = 0;
+  totalScore = 0;
+  loadWord(0);
+}
 
-   gtag('event', 'word_guessed_correctly', {
-     event_category: 'game',
-     event_label:    gameData.correctWord,
-     value:          1
-   });
-   ============================================================ */
-
-/* ── State ────────────────────────────────────────────── */
-let inputEls  = [];   // ordered array of <input> elements
-let hasWon    = false;
-
-/* ── Boot ─────────────────────────────────────────────── */
-document.addEventListener("DOMContentLoaded", () => {
+/* ── Load Word ────────────────────────────────────────────── */
+function loadWord(idx) {
+  gameData = wordList[idx];
+  attempts = 0;
+  hasWon   = false;
+  updateScoreUI(false);
   buildGame();
-});
+}
 
-/* ── Build the Letter Grid ─────────────────────────────
-   Parses `gameData.template` character by character.
-   A space ( ) is just a separator — ignored.
-   "_" creates an <input> box.
-   Any other character creates a static <span>.
-─────────────────────────────────────────────────────── */
+/* ── Build Letter Grid ────────────────────────────────────── */
 function buildGame() {
-  const grid    = document.getElementById("letter-grid");
-  const clueEl  = document.getElementById("clue-text");
+  const grid   = document.getElementById("letter-grid");
+  const clueEl = document.getElementById("clue-text");
 
   clueEl.textContent = gameData.clue;
   grid.innerHTML     = "";
   inputEls           = [];
-  hasWon             = false;
 
   hideFeedback();
-  document.getElementById("check-btn").disabled  = false;
-  document.getElementById("reset-btn").disabled  = false;
+  document.getElementById("check-btn").style.display = "flex";
+  document.getElementById("next-btn").style.display  = "none";
+  document.getElementById("reset-btn").disabled      = false;
   document.querySelector(".game-card").classList.remove("won");
 
-  /* Split on single spaces between tokens */
   const tokens = gameData.template.trim().split(/\s+/);
 
   tokens.forEach((token) => {
     if (token === "_") {
-      /* ── Input cell ── */
       const wrapper = document.createElement("div");
       wrapper.className = "input-wrapper";
 
@@ -101,119 +115,89 @@ function buildGame() {
       inputEls.push(input);
 
     } else {
-      /* ── Static letter ── */
       const cell       = document.createElement("div");
       cell.className   = "letter-cell";
       cell.textContent = token;
-      cell.setAttribute("aria-label", `الحرف ${token}`);
       grid.appendChild(cell);
     }
   });
 
-  /* Focus first input after a short delay */
-  if (inputEls.length > 0) {
-    setTimeout(() => inputEls[0].focus(), 120);
+  if (inputEls.length > 0) setTimeout(() => inputEls[0].focus(), 120);
+}
+
+/* ── Score UI ─────────────────────────────────────────────── */
+function updateScoreUI(bump) {
+  const scoreEl   = document.getElementById("score-value");
+  const counterEl = document.getElementById("word-counter");
+  const levelEl   = document.getElementById("level-badge");
+
+  scoreEl.textContent  = totalScore;
+  counterEl.innerHTML  = `${currentIdx + 1} / <span id="total-words">${wordList.length}</span>`;
+
+  const lvlNames = { 1: "سهل جداً", 2: "سهل", 3: "متوسط", 4: "صعب", 5: "صعب جداً" };
+  levelEl.textContent  = lvlNames[gameData.difficulty] || "—";
+
+  if (bump) {
+    scoreEl.classList.remove("bump");
+    void scoreEl.offsetWidth;
+    scoreEl.classList.add("bump");
+    setTimeout(() => scoreEl.classList.remove("bump"), 400);
   }
 }
 
-/* ── Input Handler ─────────────────────────────────────
-   Auto-advance cursor to next box when a character is typed.
-─────────────────────────────────────────────────────── */
+/* ── Input & Keydown ──────────────────────────────────────── */
 function onInput(e) {
   const input = e.target;
-  const val   = input.value;
-
-  /* Keep only the last character typed */
-  if (val.length > 1) {
-    input.value = val.slice(-1);
-  }
-
-  /* Clear state classes on edit */
+  if (input.value.length > 1) input.value = input.value.slice(-1);
   input.classList.remove("correct", "incorrect");
   const dot = input.nextElementSibling;
   if (dot) dot.style.background = "";
-
-  /* Advance to next input if a character was entered */
   if (input.value.length === 1) {
     const idx = inputEls.indexOf(input);
-    if (idx < inputEls.length - 1) {
-      inputEls[idx + 1].focus();
-    }
+    if (idx < inputEls.length - 1) inputEls[idx + 1].focus();
   }
 }
 
-/* ── Keydown Handler ───────────────────────────────────
-   • Enter  → check answer
-   • Backspace on empty → move to previous input
-─────────────────────────────────────────────────────── */
 function onKeydown(e) {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    checkAnswer();
-    return;
-  }
-
-  if (e.key === "Backspace") {
-    const input = e.target;
-    if (input.value === "") {
-      const idx = inputEls.indexOf(input);
-      if (idx > 0) {
-        e.preventDefault();
-        const prev = inputEls[idx - 1];
-        prev.value = "";
-        prev.focus();
-        prev.classList.remove("correct", "incorrect");
-      }
+  if (e.key === "Enter") { e.preventDefault(); checkAnswer(); return; }
+  if (e.key === "Backspace" && e.target.value === "") {
+    const idx = inputEls.indexOf(e.target);
+    if (idx > 0) {
+      e.preventDefault();
+      const prev = inputEls[idx - 1];
+      prev.value = "";
+      prev.focus();
+      prev.classList.remove("correct", "incorrect");
     }
   }
 }
 
-/* ── Check Answer ──────────────────────────────────────
-   Reconstructs the attempted word by walking the template
-   and filling in user-typed letters for "_" positions.
-─────────────────────────────────────────────────────── */
+/* ── Check Answer ─────────────────────────────────────────── */
 function checkAnswer() {
   if (hasWon) return;
 
-  const tokens = gameData.template.trim().split(/\s+/);
-  let inputIdx = 0;
-  let attempt  = "";
-
-  tokens.forEach((token) => {
-    if (token === "_") {
-      attempt += (inputEls[inputIdx]?.value.trim() || "");
-      inputIdx++;
-    } else {
-      attempt += token;
-    }
-  });
-
-  /* Check all inputs are filled */
   const allFilled = inputEls.every(inp => inp.value.trim() !== "");
   if (!allFilled) {
-    showFeedback("يبدو أنّ بعض الخانات لا تزال فارغة. أكمل جميع الحروف!", "error");
-    /* Highlight empty inputs */
-    inputEls.forEach(inp => {
-      if (inp.value.trim() === "") {
-        inp.classList.add("incorrect");
-        inp.focus();
-      }
-    });
+    showFeedback("يبدو أنّ بعض الخانات لا تزال فارغة!", "error");
+    inputEls.forEach(inp => { if (!inp.value.trim()) inp.classList.add("incorrect"); });
     return;
   }
 
-  /* Compare attempt to correct word */
-  const correct = gameData.correctWord.trim();
-  if (attempt === correct) {
-    handleWin();
-  } else {
-    handleWrong(attempt);
-  }
+  attempts++;
+
+  const tokens = gameData.template.trim().split(/\s+/);
+  let inputIdx = 0, attempt = "";
+  tokens.forEach(t => attempt += (t === "_") ? (inputEls[inputIdx++]?.value.trim() || "") : t);
+
+  if (attempt === gameData.correctWord.trim()) handleWin();
+  else handleWrong(attempt);
 }
 
-/* ── Win ──────────────────────────────────────────────── */
+/* ── Win ──────────────────────────────────────────────────── */
 function handleWin() {
   hasWon = true;
+  const pts = POINTS[attempts] ?? POINTS.default;
+  totalScore += pts;
 
   inputEls.forEach(inp => {
     inp.classList.remove("incorrect");
@@ -221,54 +205,76 @@ function handleWin() {
     inp.disabled = true;
   });
 
-  document.getElementById("check-btn").disabled = true;
+  document.getElementById("check-btn").style.display = "none";
   document.querySelector(".game-card").classList.add("won");
 
-  showFeedback(
-    `🌸 أحسنت! الكلمة الصحيحة هي «${gameData.correctWord}». رائع جداً!`,
-    "success"
-  );
+  const isLast = currentIdx >= wordList.length - 1;
 
-  /* ── GA4 Event (uncomment when gtag is loaded) ──────
+  if (isLast) {
+    showFeedback(`🏆 أنهيت جميع الكلمات! +${pts} نقاط`, "success");
+    updateScoreUI(true);
+    showGameOver();
+  } else {
+    document.getElementById("next-btn").style.display = "flex";
+    showFeedback(`✅ صحيح! +${pts} نقاط — الكلمة: «${gameData.correctWord}»`, "success");
+    updateScoreUI(true);
+  }
+
+  /* ── GA4 (uncomment when gtag is active) ───────────────
   gtag('event', 'word_guessed_correctly', {
     event_category: 'game',
     event_label:    gameData.correctWord,
-    value:          1
+    value:          pts
   });
-  ────────────────────────────────────────────────────── */
+  ─────────────────────────────────────────────────────── */
 }
 
-/* ── Wrong Answer ─────────────────────────────────────── */
+/* ── Wrong ────────────────────────────────────────────────── */
 function handleWrong(attempt) {
-  inputEls.forEach(inp => {
-    inp.classList.add("incorrect");
-  });
-
-  showFeedback(
-    `حاول مرة أخرى! الكلمة المُدخَلة «${attempt}» غير صحيحة.`,
-    "error"
-  );
-
-  /* Remove error class after animation */
-  setTimeout(() => {
-    inputEls.forEach(inp => inp.classList.remove("incorrect"));
-  }, 800);
+  inputEls.forEach(inp => inp.classList.add("incorrect"));
+  showFeedback(`حاول مرة أخرى! «${attempt}» غير صحيحة.`, "error");
+  setTimeout(() => inputEls.forEach(inp => inp.classList.remove("incorrect")), 800);
 }
 
-/* ── Reset ─────────────────────────────────────────────── */
+/* ── Next Word ────────────────────────────────────────────── */
+function nextWord() {
+  if (currentIdx < wordList.length - 1) {
+    currentIdx++;
+    loadWord(currentIdx);
+  }
+}
+
+/* ── Reset (retry same word) ──────────────────────────────── */
 function resetGame() {
-  buildGame();
+  loadWord(currentIdx);
 }
 
-/* ── Feedback Helpers ─────────────────────────────────── */
-function showFeedback(message, type) {
+/* ── Game Over Screen ─────────────────────────────────────── */
+function showGameOver() {
+  const card = document.querySelector(".game-card");
+  setTimeout(() => {
+    card.innerHTML = `
+      <div class="game-over">
+        <p class="game-over-label">انتهت اللعبة</p>
+        <h2 class="game-over-title">أحسنت! 🎉</h2>
+        <p class="game-over-label">مجموع نقاطك</p>
+        <span class="game-over-score">${totalScore}</span>
+        <p class="game-over-label">من أصل ${wordList.length * 10} نقطة ممكنة</p>
+        <button class="btn-restart" onclick="location.reload()">العب مجدداً</button>
+      </div>
+    `;
+  }, 1800);
+}
+
+/* ── Feedback Helpers ─────────────────────────────────────── */
+function showFeedback(msg, type) {
   const el = document.getElementById("feedback");
-  el.textContent = message;
+  el.textContent = msg;
   el.className   = `feedback visible ${type}`;
 }
 
 function hideFeedback() {
   const el = document.getElementById("feedback");
-  el.className   = "feedback";
+  el.className = "feedback";
   el.textContent = "";
 }
