@@ -15,11 +15,17 @@
    clue        : The description/hint shown to the player.
    ============================================================ */
 
-const gameData = {
-  template:    "ن _ _ س",
-  correctWord: "نرجس",
-  clue:        "زهرةٌ بيضاء أو صفراء ذات عطرٍ فوّاح، تُعدّ رمزاً للجمال والنقاء في الشعر العربي القديم."
-};
+let gameData = {};
+
+document.addEventListener("DOMContentLoaded", () => {
+  fetch('words.json')
+    .then(r => r.json())
+    .then(data => {
+      const level = data.words.level_2;
+      gameData = level[Math.floor(Math.random() * level.length)];
+      buildGame();
+    });
+});
 
 /* ============================================================
    GOOGLE ANALYTICS 4 — EVENT TRACKING
